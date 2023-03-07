@@ -101,7 +101,9 @@ def sample(
     temp=0.2,
     top_p=0.95,
     max_length_sample=128,
-    max_length=2048
+    max_length=2048,
+    early_stopping=True,
+    num_beams=1
 ):
 
     input_ids = tokenizer(
@@ -119,13 +121,15 @@ def sample(
         input_ids = input_ids.to(device)
         tokens = model.generate(
             input_ids,
-            do_sample=True,
+            do_sample=False,
             num_return_sequences=num_return_sequences,
             temperature=temp,
             max_length=input_ids_len + max_length_sample,
             top_p=top_p,
             pad_token_id=pad_token_id,
             use_cache=True,
+            early_stopping=early_stopping,
+            num_beams=num_beams
         )
         text = tokenizer.batch_decode(tokens[:, input_ids_len:, ...])
 
@@ -199,6 +203,8 @@ def main():
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--no-fp16', action="store_true")
     parser.add_argument('--pad', type=int, default=50256)
+    parser.add_argument('--early_stopping', type=bool, default=True)
+    parser.add_argument('--num_beams', type=int, default=1)
     parser.add_argument('--context', type=str, default='def helloworld():')
     args = parser.parse_args()
 
@@ -237,7 +243,7 @@ def main():
     # (4) sample
 
     with print_time('sampling'):
-        completion = sample(device=device, model=model, tokenizer=tokenizer, context=args.context, pad_token_id=args.pad, num_return_sequences=args.batch_size, temp=args.t, top_p=args.p, max_length_sample=args.max_length)[0]
+        completion = sample(device=device, model=model, tokenizer=tokenizer, context=args.context, pad_token_id=args.pad, num_return_sequences=args.batch_size, temp=args.t, top_p=args.p, max_length_sample=args.max_length, early_stopping=args.early_stopping, num_beams=args.num_beams)[0]
         truncation = truncate(completion)
 
         print('=' * 100)
